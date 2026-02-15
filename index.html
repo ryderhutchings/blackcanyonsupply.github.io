@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Black Canyon Supply</title>
+
+<style>
+body { font-family: Arial; margin:0; background:#f4f4f4; }
+header { background:#111; color:white; padding:20px; text-align:center; }
+nav { background:#222; padding:10px; text-align:center; }
+nav a { color:white; margin:0 15px; text-decoration:none; }
+.section { padding:40px; max-width:1200px; margin:auto; }
+input[type="text"] { width:100%; padding:12px; margin-bottom:20px; font-size:16px; }
+table { width:100%; border-collapse: collapse; background:white; }
+th, td { padding:12px; border:1px solid #ddd; text-align:left; }
+th { background:#333; color:white; }
+tr:hover { background-color:#f1f1f1; }
+a.part-link { text-decoration:none; color:#0077cc; font-weight:bold; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Black Canyon Supply</h1>
+</header>
+
+<nav>
+  <a href="#inventory">Inventory</a>
+  <a href="#contact">Contact Us</a>
+  <a href="https://www.ebay.com/" target="_blank">eBay Store</a>
+</nav>
+
+<div class="section" id="inventory">
+  <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="Search item #, part #, description, brand, condition...">
+
+  <table id="inventoryTable">
+    <thead>
+      <tr>
+        <th>Item #</th>
+        <th>Part #</th>
+        <th>Description</th>
+        <th>Brand</th>
+        <th>Condition</th>
+        <th>Qty</th>
+      </tr>
+    </thead>
+    <tbody id="inventoryBody">
+      <!-- Inventory rows loaded from CSV -->
+    </tbody>
+  </table>
+</div>
+
+<div class="section" id="contact">
+  <h2>Contact Us</h2>
+  <p>Email: example@blackcanyonsupply.com</p>
+  <p>Phone: (000) 000-0000</p>
+</div>
+
+<script>
+// CSV parser that handles quotes and commas
+function parseCSV(text) {
+  const rows = [];
+  const regex = /(?:\"([^\"]*)\"|([^,\r\n]+)|)(?=,|\r?\n|$)/g;
+  text.split(/\r?\n/).forEach(line => {
+    const row = [];
+    let match;
+    while (match = regex.exec(line)) {
+      row.push(match[1] ?? match[2] ?? "");
+      if (line[regex.lastIndex] === "," || regex.lastIndex === line.length) regex.lastIndex++;
+    }
+    if (row.length > 1 || (row.length === 1 && row[0] !== "")) rows.push(row);
+  });
+  return rows;
+}
+
+// Load inventory from CSV
+async function loadInventory() {
+  const sheetURL = "inventory.csv"; // CSV file in same folder as index.html
+  try {
+    const response = await fetch(sheetURL);
+    const csvText = await response.text();
+    const rows = parseCSV(csvText).slice(1); // skip header
+    const tbody = document.getElementById("inventoryBody");
+
+    rows.forEach(cols => {
+      if (!cols[0]) return;
+      const tr = document.createElement("tr");
+
+      const itemText = cols[0]; // Item # is plain text
+      const partLink = cols[1] ? `<a class="part-link" href="items/${cols[1]}.html">${cols[1]}</a>` : "";
+
+      tr.innerHTML = `
+        <td>${itemText}</td>
+        <td>${partLink}</td>
+        <td>${cols[2]}</td>
+        <td>${cols[3]}</td>
+        <td>${cols[4]}</td>
+        <td>${cols[5]}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error("Error loading inventory CSV:", err);
+  }
+}
+
+loadInventory();
+
+// Search function
+function searchTable() {
+  const input = document.getElementById("searchInput");
+  const filter = input.value.toUpperCase();
+  const table = document.getElementById("inventoryTable");
+  const tr = table.getElementsByTagName("tr");
+
+  for (let i = 1; i < tr.length; i++) {
+    const td = tr[i].getElementsByTagName("td");
+    let found = false;
+    for (let j = 0; j < td.length; j++) {
+      if (td[j]) {
+        const txtValue = td[j].textContent || td[j].innerText;
+        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+          found = true;
+        }
+      }
+    }
+    tr[i].style.display = found ? "" : "none";
+  }
+}
+</script>
+
+</body>
+</html>
